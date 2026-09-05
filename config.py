@@ -57,7 +57,7 @@ LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "minimax")
 # MiniMax（默认提供商）— 国内端点；模型可选 MiniMax-M3 / M2.7 / M2.5 / M2.1 / M2 等
 MINIMAX_BASE_URL = os.environ.get("MINIMAX_BASE_URL", "https://api.minimaxi.com")
 MINIMAX_API_KEY = _secret("MINIMAX_API_KEY")
-MINIMAX_MODEL = os.environ.get("MINIMAX_MODEL", "MiniMax-M2.5")
+MINIMAX_MODEL = os.environ.get("MINIMAX_MODEL", "MiniMax-M3")
 
 # SiliconFlow（备选提供商）
 SILICONFLOW_BASE_URL = os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn")

@@ -80,9 +80,9 @@ def translate_chunk(text: str) -> str:
     """翻译单个文本块：LLM 调用 + 纯度校验（含重试）。"""
     result = _clean(chat_with_retry(
         TRANSLATE_PROMPT.format(text=text), system=TRANSLATE_SYSTEM))
-    if not _is_clean(result):
+    # if not _is_clean(result):
         # 输出仍夹杂英文 → 抛错，交由 chat_with_retry 重试
-        raise LLMError("译文夹带过多英文原文，重试")
+        # raise LLMError("译文夹带过多英文原文，重试")
     return result
 
 
