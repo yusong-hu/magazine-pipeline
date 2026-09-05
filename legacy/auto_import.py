@@ -15,7 +15,7 @@ from typing import Optional, Tuple
 import requests
 
 JOPLIN_BASE = "http://127.0.0.1:41184"
-JOPLIN_TOKEN = "03cf92dd8157a6cf1d3e9d7af3d83a5de0dee936f0bc17d6507d9e841c35c829f283e4f6d1185d05d798300ac4b9973d5f3c20fe15b479e26ac1d7e15e8a0b1b"
+JOPLIN_TOKEN = "<已移除：经环境变量或 config_local.py 配置>"
 NOTEBOOK_ID = "1e80b71a80814a7b98e4246368ad5a55"  # 21_英文杂志
 
 ARTICLES_DIR = Path("/Users/yusonghu/Documents/个人电脑控制/new-yorker-import/articles")
