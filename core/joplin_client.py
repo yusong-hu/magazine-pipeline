@@ -27,17 +27,21 @@ class JoplinClient:
         return r.json() if r.text else {}
 
     # ---------- 笔记本 ----------
-    def resolve_notebook_id(self) -> str:
-        """优先用配置 ID；否则按名称查找，不存在则创建。"""
+    def resolve_notebook_id(self, name: Optional[str] = None) -> str:
+        """优先用配置 ID；否则按名称查找/创建，不存在则创建。
+
+        name 缺省时用 config.JOPLIN_NOTEBOOK_NAME；调用方通常传工作区同名。
+        """
         if config.JOPLIN_NOTEBOOK_ID:
             return config.JOPLIN_NOTEBOOK_ID
+        n = name or config.JOPLIN_NOTEBOOK_NAME
         folders = self.request("GET", "/folders",
                                params={"fields": "id,title", "limit": 100})
         for f in folders.get("items", []):
-            if f["title"] == config.JOPLIN_NOTEBOOK_NAME:
+            if f["title"] == n:
                 return f["id"]
         created = self.request("POST", "/folders",
-                               json={"title": config.JOPLIN_NOTEBOOK_NAME})
+                               json={"title": n})
         return created["id"]
 
     # ---------- 笔记 ----------

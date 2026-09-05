@@ -78,8 +78,8 @@ def cmd_import(args):
 
     ws = get_workspace(args.workspace)
     client = JoplinClient()
-    notebook_id = client.resolve_notebook_id()
-    print(f"目标笔记本: {config.JOPLIN_NOTEBOOK_NAME} ({notebook_id})")
+    notebook_id = client.resolve_notebook_id(ws.name)
+    print(f"目标笔记本: {ws.name} ({notebook_id})")
     nums = None if (args.all or not args.num) else [args.num]
     count = scan_and_import(ws, client, notebook_id, nums, force=args.force)
     return 0 if count >= 0 else 1
@@ -112,8 +112,8 @@ def cmd_run(args):
     from importer.import_joplin import scan_and_import
     from core.joplin_client import JoplinClient
     client = JoplinClient()
-    notebook_id = client.resolve_notebook_id()
-    print(f"目标笔记本: {config.JOPLIN_NOTEBOOK_NAME} ({notebook_id})")
+    notebook_id = client.resolve_notebook_id(ws.name)
+    print(f"目标笔记本: {ws.name} ({notebook_id})")
     scan_and_import(ws, client, notebook_id, [num], force=args.force)
     return 0
 

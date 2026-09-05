@@ -167,8 +167,8 @@ def main():
 
     ws = get_workspace(args.workspace)
     client = JoplinClient()
-    notebook_id = client.resolve_notebook_id()
-    print(f"目标笔记本: {config.JOPLIN_NOTEBOOK_NAME} ({notebook_id})")
+    notebook_id = client.resolve_notebook_id(ws.name)
+    print(f"目标笔记本: {ws.name} ({notebook_id})")
 
     nums = None if (args.all or args.watch or not args.num) else [args.num]
     if args.watch:

@@ -56,7 +56,7 @@ def process_one(ws, num: int, force: bool) -> bool:
         from importer.import_joplin import scan_and_import
         from core.joplin_client import JoplinClient
         client = JoplinClient()
-        notebook_id = client.resolve_notebook_id()
+        notebook_id = client.resolve_notebook_id(ws.name)
         count = scan_and_import(ws, client, notebook_id, [num], force=force)
         if count < 0:
             print(f"{tag} Joplin 导入失败")
@@ -82,10 +82,10 @@ def main():
     from core.joplin_client import JoplinClient
     try:
         client = JoplinClient()
-        notebook_id = client.resolve_notebook_id()
+        notebook_id = client.resolve_notebook_id(ws.name)
         print(f"工作区: {ws.name} | LLM: {config.LLM_PROVIDER} | "
               f"翻译引擎: {config.TRANSLATE_ENGINE}")
-        print(f"目标笔记本: {config.JOPLIN_NOTEBOOK_NAME} ({notebook_id})\n")
+        print(f"目标笔记本: {ws.name} ({notebook_id})\n")
     except Exception as e:
         print(f"⚠ Joplin 连接异常: {e}", flush=True)
         client, notebook_id = None, None
@@ -102,7 +102,7 @@ def main():
             try:
                 from core.joplin_client import JoplinClient
                 client = JoplinClient()
-                notebook_id = client.resolve_notebook_id()
+                notebook_id = client.resolve_notebook_id(ws.name)
             except Exception:
                 failed.append((num, "Joplin 连接不可用"))
                 continue

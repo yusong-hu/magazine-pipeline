@@ -64,6 +64,19 @@ ANALYSIS_PROMPT = """你是一位资深英文杂志精读导师，为中文读�
 
 {body}"""
 
+# 敏感词/内容审核报错特征串（出现任一即判定该篇触雷，跳过并继续）
+_SENSITIVE_HINTS = (
+    "敏感", "审核", "过滤", "违规", "拒绝",
+    "content filter", "content_policy", "moderation",
+    "safety", "blocked", "inappropriate", "sensitive",
+)
+
+
+def _is_sensitive_error(exc: Exception) -> bool:
+    """按异常文本识别是否为敏感词/内容审核导致的失败。"""
+    msg = str(exc).lower()
+    return any(h.lower() in msg for h in _SENSITIVE_HINTS)
+
 
 def analyze_article(ws: Workspace, num: int, force: bool = False) -> Path | None:
     """为一篇文章生成中文解析并写入 zh md。"""
@@ -89,7 +102,20 @@ def analyze_article(ws: Workspace, num: int, force: bool = False) -> Path | None
         section=en_doc.meta.get("栏目", ""),
         body=body,
     )
-    analysis = chat_with_retry(prompt)
+    try:
+        analysis = chat_with_retry(prompt)
+    except Exception as exc:
+        # 任何调用失败均不中断整批：在文章解析段落写入标记后跳过继续（幂等）
+        if _is_sensitive_error(exc):
+            note = "（本篇解析被评测系统判为含敏感信息，已跳过，未生成解析）"
+        else:
+            note = f"（本篇解析调用失败：{type(exc).__name__}，已跳过，未生成解析）"
+        print(f"  [{num:02d}] {note}")
+        zh_path.write_text(
+            build_zh_md(zh_doc.title, zh_doc.meta, zh_doc.translation,
+                        f"\n> {note}\n"),
+            encoding="utf-8")
+        return zh_path
     # 去掉模型可能自带的顶层 "## 中文解析" 重复标题
     analysis = re.sub(r"^##\s*中文解析\s*\n+", "", analysis, flags=re.MULTILINE).strip()
 

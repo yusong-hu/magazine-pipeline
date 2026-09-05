@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -114,6 +115,70 @@ def main():
     nums = ws.all_en_nums() if (args.all or not args.num) else [args.num]
     for num in nums:
         translate_article(ws, num, force=args.force)
+
+
+# ---------- 逐句容错翻译（LLM 回退路径） ----------
+# 按句子边界切分（英文 .!? 后的空白/行尾），句炸不切分缩写类特殊情况可接受
+_SENT_RE = re.compile(r"(?<=[.!?])(?=\s|$)")
+
+
+def _split_sentences(para: str) -> list[str]:
+    """按句粒度切分一段文本（整段为空则返回空列表），句子去除首尾空白。"""
+    if not para.strip():
+        return []
+    return [p.strip() for p in _SENT_RE.split(para) if p.strip()]
+
+
+def translate_text_sentences(text: str, from_lang: str = "en", to_lang: str = "zh") -> str:
+    """逐句翻译整篇文本，单句失败则跳过（保留原句），不中断。
+
+    段落（\\n\\n 分隔）结构保留；逐句容错，适用于 LLM 触敏回退场景。
+    """
+    paras = text.split("\n\n")
+    out_paras = []
+    for para in paras:
+        if not para.strip():
+            out_paras.append(para)
+            continue
+        # 单段内部的超长连续（如代码块/长行）整体分块翻译；否则逐句
+        if len(para) <= config.BAIDU_MT_MAX_CHARS:
+            sentences = _split_sentences(para)
+            pieces = []
+            for s in sentences:
+                try:
+                    pieces.append(translate_chunk(s, from_lang, to_lang))
+                except Exception:
+                    pieces.append(s)  # 该句失败：保留原文，跳过不中断
+            out_paras.append(" ".join(pieces))
+        else:
+            try:
+                out_paras.append(translate_text(para, from_lang, to_lang))
+            except Exception:
+                out_paras.append(para)  # 超长段失败：整体保留原文
+    return "\n\n".join(out_paras)
+
+
+def translate_article_sentences(ws: Workspace, num: int, force: bool = False) -> Path | None:
+    """逐句百度翻译一篇（单句失败跳过），返回输出路径；跳过返回 None。"""
+    en_path = ws.en_md(num)
+    if not en_path:
+        print(f"  [{num:02d}] 未找到英文原文，跳过")
+        return None
+    zh_path = ws.zh_md(num)
+    if zh_path.exists() and not force:
+        print(f"  [{num:02d}] 中文版已存在，跳过 ({zh_path.name})")
+        return zh_path
+
+    doc = parse_article_doc(en_path.read_text(encoding="utf-8"))
+    print(f"  [{num:02d}] {doc.title}  （逐句百度回退）")
+
+    title_zh = translate_text_sentences(doc.title)
+    body_zh = translate_text_sentences(doc.body)
+    translation = f"**{title_zh}**\n\n{body_zh}".strip()
+
+    zh_path.write_text(build_zh_md(title_zh, doc.meta, translation), encoding="utf-8")
+    print(f"  [{num:02d}] -> {zh_path}")
+    return zh_path
 
 
 if __name__ == "__main__":
