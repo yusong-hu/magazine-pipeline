@@ -42,6 +42,23 @@ VOICE_ZH = os.environ.get("MAGPIPE_VOICE_ZH", "zh-CN-YunyangNeural")
 TTS_COOLDOWN = float(os.environ.get("MAGPIPE_TTS_COOLDOWN", "3"))
 TTS_MAX_CHARS = int(os.environ.get("MAGPIPE_TTS_MAX_CHARS", "250"))
 
+# ---------- TTS 语音引擎：本地 edge-tts 或云端 MiniMax ----------
+# edge    = 本地 text-to-speech 引擎（默认）
+# minimax = MiniMax TTS（t2a_v2 REST 接口，复用 MINIMAX_API_KEY）
+TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "edge")
+
+# MiniMax TTS 参数（仅 TTS_PROVIDER=minimax 生效）
+MINIMAX_TTS_BASE_URL = os.environ.get("MINIMAX_TTS_BASE_URL", "https://api.minimaxi.com")
+MINIMAX_TTS_GROUP_ID = _secret("MINIMAX_TTS_GROUP_ID")
+MINIMAX_TTS_MODEL = os.environ.get("MINIMAX_TTS_MODEL", "speech-2.8-hd")
+MINIMAX_TTS_VOICE_EN = os.environ.get("MINIMAX_TTS_VOICE_EN", "male-qn-jingying")
+MINIMAX_TTS_VOICE_ZH = os.environ.get("MINIMAX_TTS_VOICE_ZH", "female-shaonv")
+MINIMAX_TTS_MAX_CHARS = int(os.environ.get("MINIMAX_TTS_MAX_CHARS", "900"))
+MINIMAX_TTS_SPEED = float(os.environ.get("MINIMAX_TTS_SPEED", "1.0"))
+MINIMAX_TTS_TIMEOUT = int(os.environ.get("MINIMAX_TTS_TIMEOUT", "120"))
+MINIMAX_TTS_MAX_RETRIES = int(os.environ.get("MINIMAX_TTS_MAX_RETRIES", "3"))
+MINIMAX_TTS_RETRY_WAIT = int(os.environ.get("MINIMAX_TTS_RETRY_WAIT", "5"))
+
 # ---------- 百度翻译 API ----------
 BAIDU_MT_URL = "https://aip.baidubce.com/rpc/2.0/mt/texttrans/v2"
 BAIDU_MT_TOKEN = _secret("BAIDU_MT_TOKEN")

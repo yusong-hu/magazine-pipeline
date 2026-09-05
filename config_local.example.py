@@ -10,8 +10,12 @@ JOPLIN_TOKEN = ""
 # 百度文本翻译 v2 API Token（bce-v3 Bearer）
 BAIDU_MT_TOKEN = ""
 
-# MiniMax API Key（默认 LLM 提供商）
+# MiniMax API Key（默认 LLM 提供商，也用于 TTS_PROVIDER=minimax 鉴权）
 MINIMAX_API_KEY = ""
+
+# MiniMax TTS GroupID — 可选（新版端点实测可省略，留空即用账号默认组）
+# 部分旧账号/备用端点 (api-bj) 需要；报“缺 GroupId”时再从账户中心获取填写。
+MINIMAX_TTS_GROUP_ID = ""
 
 # SiliconFlow API Key（备选 LLM 提供商）
 SILICONFLOW_API_KEY = ""
