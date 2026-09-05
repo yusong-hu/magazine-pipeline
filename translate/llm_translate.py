@@ -21,18 +21,27 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import config
 from core.contract import Workspace, get_workspace
-from core.llm_client import chat_with_retry, provider_info
+from core.llm_client import LLMError, chat_with_retry, provider_info
 from core.markdown_utils import build_zh_md, parse_article_doc
 from core.text_utils import split_into_chunks
 
-TRANSLATE_SYSTEM = "你是一位资深的中英翻译，擅长《经济学人》《纽约客》等英文杂志的汉译，译文达到中文出版水准。"
+TRANSLATE_SYSTEM = (
+    "你是严格的英文杂志翻译引擎，只输出中文译文。"
+    "你的全部输出必须是纯中文译文，不得出现任何英文单词、句子或段落，"
+    "不得复述或对照原文，不得给出任何解释、序言或评论。"
+    "这是铁律，违反即失败。"
+)
 
-TRANSLATE_PROMPT = """把下面的英文 Markdown 片段翻译成中文，要求：
-- 忠实原意，译文流畅自然，符合中文杂志出版水准
-- 严格保持原有段落结构：空行分隔的段落一一对应，不合并、不拆分、不增删段落
-- 保留 Markdown 标记（# * - > 等）与文内超链接
-- 人名、机构名等专有名词首次出现时，在中文译名后用括号标注英文原文
-- 只输出译文本身，不要任何解释、前言或原文复述
+TRANSLATE_PROMPT = """把下面一段英文 Markdown 翻译成严格、纯净的中文译文。这是机器翻译任务，必须逐条遵守：
+
+1.【只输出译文】你的输出必须完全是中文译文，禁止出现任何英文原文单词、句子或段落。
+   即使是专有名词（人名、作品名、机构名）也一律只用中文译名，禁止附带英文。
+2.【零附加】禁止复述原文、禁止中英文对照、禁止评论、禁止任何解释或见解。
+3.【零标签】禁止输出"原文""译文""翻译如下""注："等任何标签或引导语，直接给出译文本体。
+4.【结构不变】空行分隔的段落一一对应，不合并、不拆分、不增删段落；保留 Markdown 标记（# * - > 等）与文内超链接地址。
+5.【忠实流畅】忠实原意，语句通顺，符合中文杂志出版水准。
+
+铁律：最终输出 = 与输入段落数相同的中文译文。除中文译文外，一个多余的英文字母、一个多余单词，都不准出现。
 
 英文原文：
 
@@ -48,10 +57,33 @@ def _clean(text: str) -> str:
     return text.strip()
 
 
+# 译文里 ASCII 英文字母占比超过该阈值即判定为“夹带英文原文”
+_EN_MAX_ASCII_RATIO = 0.20
+
+
+def _is_clean(text: str) -> bool:
+    """校验译文纯度：剔除超链接后，英文（ASCII）字符占比须远低于中文。
+
+    中文译文中的英文主要来自 URL 等链接，先剔除再统计，避免误判。
+    """
+    body = re.sub(r"\(https?://[^)\s]+\)", "", text)       # 去掉 [x](url)
+    body = re.sub(r"https?://[^\s)]+", "", body)           # 去掉裸 url
+    ascii_n = len(re.findall(r"[A-Za-z]", body))
+    zh_n = len(re.findall(r"[\u4e00-\u9fff]", body))
+    total = ascii_n + zh_n
+    if total == 0:
+        return True
+    return ascii_n / total < _EN_MAX_ASCII_RATIO
+
+
 def translate_chunk(text: str) -> str:
-    """翻译单个文本块（含重试）。"""
-    return _clean(chat_with_retry(
+    """翻译单个文本块：LLM 调用 + 纯度校验（含重试）。"""
+    result = _clean(chat_with_retry(
         TRANSLATE_PROMPT.format(text=text), system=TRANSLATE_SYSTEM))
+    if not _is_clean(result):
+        # 输出仍夹杂英文 → 抛错，交由 chat_with_retry 重试
+        raise LLMError("译文夹带过多英文原文，重试")
+    return result
 
 
 def translate_text(text: str) -> str:
